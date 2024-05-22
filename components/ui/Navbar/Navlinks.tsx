@@ -26,9 +26,14 @@ export default function Navlinks({ user }: NavlinksProps) {
             Pricing
           </Link>
           {user && (
-            <Link href="/account" className={s.link}>
-              Account
-            </Link>
+            <>
+              <Link href="/account" className={s.link}>
+                Account
+              </Link>
+              <Link href="/site-scout-dash" className={s.link}>  {/* Added Dashboard link */}
+                EV Site Scout
+              </Link>
+            </>
           )}
         </nav>
       </div>
