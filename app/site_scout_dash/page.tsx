@@ -1,50 +1,41 @@
+"use client";
+
 import CustomerPortalForm from '@/components/ui/AccountForms/CustomerPortalForm';
 import EmailForm from '@/components/ui/AccountForms/EmailForm';
 import NameForm from '@/components/ui/AccountForms/NameForm';
-import { createClient } from '@/utils/supabase/server';
-import { redirect } from 'next/navigation';
-import { powerbiApi } from '@/powerbi.api';
-import { powerbiConfig } from '@/powerbi.config';
 import { useEffect, useState } from 'react';
+import { powerbiApi } from '@/powerbi.api'; // Adjust the import path as necessary
 
 export default function SiteScoutDash() {
   const [dashboardUrl, setDashboardUrl] = useState<string | null>(null); // Correctly typed useState
   const [userDetails, setUserDetails] = useState<any>(null);
   const [subscription, setSubscription] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
-  const supabase = createClient();
 
   useEffect(() => {
     async function fetchDashboard() {
-      const { data: userData } = await supabase.auth.getUser();
-      setUser(userData.user);
+      try {
+        const res = await fetch('/api/webhooks/supabase');
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        const data = await res.json();
 
-      if (!userData.user) {
-        redirect('/signin');
-        return;
-      }
+        console.log('Fetched Data:', data);
+        setUser(data.user);
+        setUserDetails(data.userDetails);
+        setSubscription(data.subscription);
 
-      const { data: userDetailsData } = await supabase
-        .from('users')
-        .select('*')
-        .single();
-      setUserDetails(userDetailsData);
-
-      const { data: subscriptionData, error } = await supabase
-        .from('subscriptions')
-        .select('*, prices(*, products(*))')
-        .in('status', ['trialing', 'active'])
-        .maybeSingle();
-      setSubscription(subscriptionData);
-
-      if (error) {
-        console.log(error);
-      }
-
-      const accessToken = await powerbiApi.authenticate();
-      const dashboard = await powerbiApi.getDashboard(accessToken);
-      if (dashboard) {
-        setDashboardUrl(`https://app.powerbi.com/reportEmbed?groupId=${powerbiConfig.groupId}&dashboardId=${powerbiConfig.dashboardId}`);
+        // Fetch Power BI Access Token
+        const accessToken = await powerbiApi.authenticate();
+        console.log('Access Token:', accessToken);
+        
+        // Set the dashboard URL with the access token
+        const embedUrl = `https://app.powerbi.com/reportEmbed?groupId=90eb8937-dc8b-409a-877b-fc25155669b0&dashboardId=3593492a-f7ea-49cc-b736-7da4829364e8&access_token=${accessToken}`;
+        setDashboardUrl(embedUrl);
+        console.log('Dashboard URL:', embedUrl);
+      } catch (error) {
+        console.error('Fetch Error:', error);
       }
     }
 
